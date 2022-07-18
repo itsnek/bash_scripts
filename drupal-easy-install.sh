@@ -2,7 +2,7 @@
 
 ########################
 # Author: Nikos Siachamis
-# Date: 08-11-2021
+# Date: 04-04-2022
 # Drupal 8-9 installer
 ###########################
 
@@ -22,6 +22,7 @@ answer=""
 
 cp sample.env .env
 file="$(pwd)/.env"
+settings_file="$(pwd)/www/drupal-v9/web/sites/default/settings.php"
 #[[ -z file ]] && cp sample.env .env
 
 
@@ -44,7 +45,7 @@ Drupal Installer
 
 Description: 
 ============
-This script install and deploy Drupal 8 and 9.
+This script installs and deploys Drupal 8 and 9.
 
 Requirement:
 ============
@@ -52,7 +53,7 @@ You must have git,php 7.4/8 and MariaDB installed.
 
 Usage:
 ======
-./$script_name [ -d path | --dir path] [ -u | --uninstall ] [ -v | --version ] [ -h | --help ] 
+./$script_name [ -n | --name] [ -dv | --drupal_version ] [ -pv | --php_version ] [ -v | --version ] [ -h | --help ] 
     -v | --version   Script version.
     -h | --help      Show help.
     -n | --name      Enter the name of the project.
@@ -71,25 +72,25 @@ Examples:
     # get version
     ./drupal-installer.sh -v
 
-    # get name 
+    # set name 
     ./drupal-installer.sh -n lamp
 
-    # get drupal version
+    # set drupal version
     ./drupal-installer.sh -dv 9
 
-    # get php version
+    # set php version
     ./drupal-installer.sh -pv 74
 
-    # get both name and drupal version    
+    # set both name and drupal version    
     ./drupal-installer.sh -n lamp -dv 9
 
-    # get both name and php version    
+    # set both name and php version    
     ./drupal-installer.sh -n lamp -pv 8
 
-    # get both php and drupal version    
+    # set both php and drupal version    
     ./drupal-installer.sh -pv 8 -dv 9
 
-    # get all name, drupal and php version    
+    # set all name, drupal and php version    
     ./drupal-installer.sh -n lamp -dv 9 -pv 74
 
 EOF
@@ -112,6 +113,11 @@ while [[ $# > 0 ]]; do
     -pv | --php_version)
         phpversion=$2
         shift 2
+        ;;
+    -y | --yes)
+        ans="Y"
+        answer="Y"
+        shift 1
         ;;
     -v | --version)
         echo "$version"
@@ -180,15 +186,15 @@ set_db(){
     docker-compose up -d --build #--force-recreate --no-deps
     
     if [ $drupalv = 8 ]; then
-        docker exec -it "${project_name}"-php"${phpversion}" bash -c "composer install --working-dir=/var/www/drupal-v8/"
+        docker exec -t "${project_name}"-php"${phpversion}" bash -c "composer install --working-dir=/var/www/drupal-v8/ -n -q"
     elif [ $drupalv = 9 ]; then
-        docker exec -it "${project_name}"-php"${phpversion}" bash -c "composer install --working-dir=/var/www/drupal-v9/"
-	docker cp $(pwd)/data/drupal-database/drupal9_dark_plus.sql "${project_name}"-mariadb106:/home/drupal9_dark_plus.sql
+        docker exec -t "${project_name}"-php"${phpversion}" bash -c "composer install --working-dir=/var/www/drupal-v9/ -n -q"
+	    docker cp $(pwd)/data/drupal-database/drupal9_dark_plus.sql "${project_name}"-mariadb106:/home/drupal9_dark_plus.sql
     fi
 
-    docker exec -it "${project_name}"-php"${phpversion}" bash -c "chown -R www-data /var/www/*"
+    docker exec -t "${project_name}"-php"${phpversion}" bash -c "chown -R www-data /var/www/*"
 
-    docker exec -it "${project_name}"-mariadb106 bash -c "echo "max_allowed_packet=512M" >> etc/mysql/my.cnf"
+    docker exec -t "${project_name}"-mariadb106 bash -c "echo "max_allowed_packet=512M" >> etc/mysql/my.cnf"
     # docker exec -it "${project_name}"-mariadb106 bash -c "mysql --user=root -ptiger -e \"SET @@GLOBAL.max_allowed_packet=536870912;\""
     if [[ $? != 0 ]]; then
         echo "Changing max allowed packet's size failed."
@@ -199,7 +205,7 @@ set_db(){
 
     if [ $drupalv = 9 ]; then
 
-    	docker exec -it "${project_name}"-mariadb106 bash -c "mysql --user=root -ptiger -e \"CREATE DATABASE drupal9_dark_plus;\""
+    	docker exec -t "${project_name}"-mariadb106 bash -c "mysql --user=root -ptiger -e \"CREATE DATABASE drupal9_dark_plus;\""
     	if [[ $? != 0 ]]; then
         
             echo "Database creation failed." 
@@ -221,7 +227,7 @@ set_db(){
             echo "Database created successfully."
     	fi
 
-    	docker exec -it "${project_name}"-mariadb106 bash -c "mysql --user=root -ptiger drupal9_dark_plus < /home/drupal9_dark_plus.sql"
+    	docker exec -t "${project_name}"-mariadb106 bash -c "mysql --user=root -ptiger drupal9_dark_plus < /home/drupal9_dark_plus.sql"
     	if [[ $? != 0 ]]; then
             echo "The loading of data failed."
             exit 1
@@ -286,6 +292,7 @@ get_attributes
 sed -i 's/_CUSTOM_PROJECT_NAME_/'$project_name'/' $file
 sed -i 's/_CUSTOM_DRUPAL_VERSION_/'$drupalv'/' $file
 sed -i 's/_CUSTOM_PHP_VERSION_/'$phpversion'/' $file
+sed -i 's/_CUSTOM_HOST_NAME_/'$project_name-mariadb106'/' $settings_file
 
 #Script's process
 set_db
@@ -299,7 +306,6 @@ docker restart "${project_name}"-mariadb106
 
 echo "
 Installation completed successfully. 
-You can now visit Drupal at dawn.itml.gr .
 "
 
 exit 0
