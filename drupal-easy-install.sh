@@ -195,7 +195,7 @@ set_db(){
     docker exec -t "${project_name}"-php"${phpversion}" bash -c "chown -R www-data /var/www/*"
 
     docker exec -t "${project_name}"-mariadb106 bash -c "echo "max_allowed_packet=512M" >> etc/mysql/my.cnf"
-    # docker exec -it "${project_name}"-mariadb106 bash -c "mysql --user=root -ptiger -e \"SET @@GLOBAL.max_allowed_packet=536870912;\""
+    # docker exec -it "${project_name}"-mariadb106 bash -c "mysql --user=root -p<password> -e \"SET @@GLOBAL.max_allowed_packet=536870912;\""
     if [[ $? != 0 ]]; then
         echo "Changing max allowed packet's size failed."
         exit 1
@@ -205,7 +205,7 @@ set_db(){
 
     if [ $drupalv = 9 ]; then
 
-    	docker exec -t "${project_name}"-mariadb106 bash -c "mysql --user=root -ptiger -e \"CREATE DATABASE drupal9_dark_plus;\""
+    	docker exec -t "${project_name}"-mariadb106 bash -c "mysql --user=root -p<password> -e \"CREATE DATABASE drupal9_dark_plus;\""
     	if [[ $? != 0 ]]; then
         
             echo "Database creation failed." 
@@ -227,7 +227,7 @@ set_db(){
             echo "Database created successfully."
     	fi
 
-    	docker exec -t "${project_name}"-mariadb106 bash -c "mysql --user=root -ptiger drupal9_dark_plus < /home/drupal9_dark_plus.sql"
+    	docker exec -t "${project_name}"-mariadb106 bash -c "mysql --user=root -p<password> drupal9_dark_plus < /home/drupal9_dark_plus.sql"
     	if [[ $? != 0 ]]; then
             echo "The loading of data failed."
             exit 1

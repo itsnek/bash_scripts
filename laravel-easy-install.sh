@@ -210,7 +210,7 @@ set_db(){
         echo "Authentication enabled successfully."
     fi
 
-    docker exec -it "${project_name}"-mariadb106 bash -c "mysql --user=root -ptiger -e \"CREATE DATABASE ${db_name};\"" 
+    docker exec -it "${project_name}"-mariadb106 bash -c "mysql --user=root -p<password> -e \"CREATE DATABASE ${db_name};\"" 
     if [[ $? != 0 ]]; then
         echo "Database creation failed."
         exit 1
@@ -291,7 +291,6 @@ docker restart "${project_name}"-mariadb106
 
 echo "
 Installation completed successfully. 
-You can now visit Drupal at dawn.itml.gr .
 "
 
 exit 0
